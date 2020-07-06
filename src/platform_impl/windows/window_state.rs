@@ -1,5 +1,5 @@
 use crate::{
-    dpi::{PhysicalPosition, Size},
+    dpi::{PhysicalPosition, Position, Size},
     event::ModifiersState,
     icon::Icon,
     platform_impl::platform::{event_loop, util},
@@ -34,6 +34,8 @@ pub struct WindowState {
     pub is_dark_mode: bool,
     pub high_surrogate: Option<u16>,
     window_flags: WindowFlags,
+
+    pub ime_position: Position,
 }
 
 #[derive(Clone)]
@@ -124,6 +126,8 @@ impl WindowState {
             is_dark_mode,
             high_surrogate: None,
             window_flags: WindowFlags::empty(),
+
+            ime_position: Position::Physical((0, 0).into()),
         }
     }
 

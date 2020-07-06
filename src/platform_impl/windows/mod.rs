@@ -91,6 +91,7 @@ mod drop_handler;
 mod event;
 mod event_loop;
 mod icon;
+mod imm;
 mod monitor;
 mod raw_input;
 mod window;

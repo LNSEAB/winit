@@ -608,8 +608,9 @@ impl Window {
     }
 
     #[inline]
-    pub fn set_ime_position(&self, _position: Position) {
-        unimplemented!();
+    pub fn set_ime_position(&self, position: Position) {
+        let window_state = Arc::clone(&self.window_state);
+        window_state.lock().ime_position = position;
     }
 
     #[inline]

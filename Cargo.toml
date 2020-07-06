@@ -64,6 +64,7 @@ features = [
     "dwmapi",
     "errhandlingapi",
     "hidusage",
+    "imm",
     "libloaderapi",
     "objbase",
     "ole2",
