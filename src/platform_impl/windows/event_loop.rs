@@ -951,73 +951,6 @@ unsafe extern "system" fn public_window_callback<T: 'static>(
             0
         }
 
-        winuser::WM_IME_SETCONTEXT => {
-            use super::imm;
-            winuser::DefWindowProcW(
-                window,
-                msg,
-                wparam,
-                lparam & !imm::ISC_SHOWUICOMPOSITIONWINDOW,
-            )
-        }
-
-        winuser::WM_IME_STARTCOMPOSITION => {
-            use super::imm;
-            use crate::event::WindowEvent::Composition;
-            let (position, scale_factor) = {
-                let window_state = subclass_input.window_state.lock();
-                (window_state.ime_position, window_state.scale_factor)
-            };
-            let imc = imm::Imc::get_context(window);
-            imc.set_candidate_window_position(position.to_physical(scale_factor));
-            subclass_input.send_event(Event::WindowEvent {
-                window_id: RootWindowId(WindowId(window)),
-                event: Composition(CompositionEvent::CompositionStart("".to_owned())),
-            });
-            0
-        }
-
-        winuser::WM_IME_COMPOSITION => {
-            use super::imm;
-            use crate::event::WindowEvent::Composition;
-            let lparam = lparam as u32;
-            let imc = imm::Imc::get_context(window);
-            if lparam & (imm::GCS_COMPSTR | imm::GCS_RESULTSTR) == 0 {
-                subclass_input.send_event(Event::WindowEvent {
-                    window_id: RootWindowId(WindowId(window)),
-                    event: Composition(CompositionEvent::CompositionUpdate("".to_owned(), 0)),
-                });
-            } else if lparam & imm::GCS_COMPSTR != 0 {
-                if let Some(s) = imc.get_composition_string(imm::GCS_COMPSTR) {
-                    let len = s.as_str().len();
-                    subclass_input.send_event(Event::WindowEvent {
-                        window_id: RootWindowId(WindowId(window)),
-                        event: Composition(CompositionEvent::CompositionUpdate(s, len)),
-                    });
-                }
-            }
-            0
-        }
-
-        winuser::WM_IME_ENDCOMPOSITION => {
-            use super::imm;
-            use crate::event::WindowEvent::Composition;
-            let imc = imm::Imc::get_context(window);
-            let s = imc.get_composition_string(imm::GCS_RESULTSTR);
-            if let Some(s) = s {
-                subclass_input.send_event(Event::WindowEvent {
-                    window_id: RootWindowId(WindowId(window)),
-                    event: Composition(CompositionEvent::CompositionEnd(s)),
-                });
-            } else {
-                subclass_input.send_event(Event::WindowEvent {
-                    window_id: RootWindowId(WindowId(window)),
-                    event: Composition(CompositionEvent::CompositionEnd("".to_owned())),
-                });
-            }
-            0
-        }
-
         // this is necessary for us to maintain minimize/restore state
         winuser::WM_SYSCOMMAND => {
             if wparam == winuser::SC_RESTORE {
@@ -1941,6 +1874,65 @@ unsafe extern "system" fn public_window_callback<T: 'static>(
             }
 
             commctrl::DefSubclassProc(window, msg, wparam, lparam)
+        }
+
+        winuser::WM_IME_SETCONTEXT => {
+            use super::imm;
+            winuser::DefWindowProcW(
+                window,
+                msg,
+                wparam,
+                lparam & !imm::ISC_SHOWUICOMPOSITIONWINDOW,
+            )
+        }
+
+        winuser::WM_IME_STARTCOMPOSITION => {
+            use super::imm;
+            use crate::event::WindowEvent::Composition;
+            let (position, scale_factor) = {
+                let window_state = subclass_input.window_state.lock();
+                (window_state.ime_position, window_state.scale_factor)
+            };
+            let imc = imm::Imc::get_context(window);
+            imc.set_candidate_window_position(position.to_physical(scale_factor));
+            subclass_input.send_event(Event::WindowEvent {
+                window_id: RootWindowId(WindowId(window)),
+                event: Composition(CompositionEvent::CompositionStart("".to_owned())),
+            });
+            0
+        }
+
+        winuser::WM_IME_COMPOSITION => {
+            use super::imm;
+            use crate::event::WindowEvent::Composition;
+            let lparam = lparam as u32;
+            let imc = imm::Imc::get_context(window);
+            if lparam & (imm::GCS_COMPSTR | imm::GCS_RESULTSTR) == 0 {
+                subclass_input.send_event(Event::WindowEvent {
+                    window_id: RootWindowId(WindowId(window)),
+                    event: Composition(CompositionEvent::CompositionUpdate("".to_owned(), 0)),
+                });
+            } else if lparam & imm::GCS_COMPSTR != 0 {
+                let s = imc.get_composition_string(imm::GCS_COMPSTR);
+                let len = s.as_str().len();
+                subclass_input.send_event(Event::WindowEvent {
+                    window_id: RootWindowId(WindowId(window)),
+                    event: Composition(CompositionEvent::CompositionUpdate(s, len)),
+                });
+            }
+            0
+        }
+
+        winuser::WM_IME_ENDCOMPOSITION => {
+            use super::imm;
+            use crate::event::WindowEvent::Composition;
+            let imc = imm::Imc::get_context(window);
+            let s = imc.get_composition_string(imm::GCS_RESULTSTR);
+            subclass_input.send_event(Event::WindowEvent {
+                window_id: RootWindowId(WindowId(window)),
+                event: Composition(CompositionEvent::CompositionEnd(s)),
+            });
+            0
         }
 
         _ => {

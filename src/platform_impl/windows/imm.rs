@@ -11,8 +11,6 @@ use winapi::{
     },
 };
 
-pub const IMM_ERROR_NODATA: LONG = -1;
-pub const IMM_ERROR_GENERAL: LONG = -2;
 pub const GCS_COMPSTR: DWORD = 0x0008;
 pub const GCS_RESULTSTR: DWORD = 0x0800;
 pub const ISC_SHOWUICOMPOSITIONWINDOW: LPARAM = 0x80000000;
@@ -75,25 +73,19 @@ impl Imc {
         }
     }
 
-    pub fn get_composition_string(&self, index: DWORD) -> Option<String> {
+    pub fn get_composition_string(&self, index: DWORD) -> String {
         unsafe {
-            let len = ImmGetCompositionStringW(self.himc, index, std::ptr::null_mut(), 0);
-            if len == IMM_ERROR_NODATA || len == IMM_ERROR_GENERAL {
-                return None;
-            }
-            let len = len as usize;
-            let mut buf = Vec::with_capacity(len / 2);
-            buf.set_len(len / 2);
-            let ret = ImmGetCompositionStringW(
+            let byte_len = ImmGetCompositionStringW(self.himc, index, std::ptr::null_mut(), 0);
+            let len = byte_len as usize / std::mem::size_of::<u16>();
+            let mut buf = Vec::with_capacity(len);
+            buf.set_len(len);
+            ImmGetCompositionStringW(
                 self.himc,
                 index,
                 buf.as_mut_ptr() as *mut _,
-                len as DWORD,
+                byte_len as DWORD,
             );
-            if ret == IMM_ERROR_GENERAL {
-                return None;
-            }
-            Some(String::from_utf16_lossy(&buf))
+            String::from_utf16_lossy(&buf)
         }
     }
 }
