@@ -1913,11 +1913,10 @@ unsafe extern "system" fn public_window_callback<T: 'static>(
                     event: Composition(CompositionEvent::CompositionUpdate("".to_owned(), 0)),
                 });
             } else if lparam & imm::GCS_COMPSTR != 0 {
-                let s = imc.get_composition_string(imm::GCS_COMPSTR);
-                let len = s.as_str().len();
+                let (s, pos) = imc.get_composition_string(imm::GCS_COMPSTR);
                 subclass_input.send_event(Event::WindowEvent {
                     window_id: RootWindowId(WindowId(window)),
-                    event: Composition(CompositionEvent::CompositionUpdate(s, len)),
+                    event: Composition(CompositionEvent::CompositionUpdate(s, pos)),
                 });
             }
             0
@@ -1927,7 +1926,7 @@ unsafe extern "system" fn public_window_callback<T: 'static>(
             use super::imm;
             use crate::event::WindowEvent::Composition;
             let imc = imm::Imc::get_context(window);
-            let s = imc.get_composition_string(imm::GCS_RESULTSTR);
+            let (s, _) = imc.get_composition_string(imm::GCS_RESULTSTR);
             subclass_input.send_event(Event::WindowEvent {
                 window_id: RootWindowId(WindowId(window)),
                 event: Composition(CompositionEvent::CompositionEnd(s)),

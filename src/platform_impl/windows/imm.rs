@@ -12,6 +12,7 @@ use winapi::{
 };
 
 pub const GCS_COMPSTR: DWORD = 0x0008;
+pub const GCS_CURSORPOS: DWORD = 0x0080;
 pub const GCS_RESULTSTR: DWORD = 0x0800;
 pub const ISC_SHOWUICOMPOSITIONWINDOW: LPARAM = 0x80000000;
 
@@ -73,7 +74,7 @@ impl Imc {
         }
     }
 
-    pub fn get_composition_string(&self, index: DWORD) -> String {
+    pub fn get_composition_string(&self, index: DWORD) -> (String, usize) {
         unsafe {
             let byte_len = ImmGetCompositionStringW(self.himc, index, std::ptr::null_mut(), 0);
             let len = byte_len as usize / std::mem::size_of::<u16>();
@@ -85,7 +86,20 @@ impl Imc {
                 buf.as_mut_ptr() as *mut _,
                 byte_len as DWORD,
             );
-            String::from_utf16_lossy(&buf)
+            let s = String::from_utf16_lossy(&buf);
+            let byte_pos =
+                ImmGetCompositionStringW(self.himc, GCS_CURSORPOS, std::ptr::null_mut(), 0)
+                    as usize
+                    & 0xffff;
+            let char_pos = byte_pos / std::mem::size_of::<u16>();
+            let mut pos = 0;
+            for (i, c) in s.char_indices() {
+                pos += c.len_utf8();
+                if i == char_pos {
+                    break;
+                }
+            }
+            (s, pos)
         }
     }
 }
